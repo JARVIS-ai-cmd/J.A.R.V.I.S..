@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>J.A.R.V.I.S. ULTIMATE — Stark Industries</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --blue:#00b4ff; --cyan:#00e5ff; --gold:#ffa500; --red:#ff3c3c;
+  --green:#00ff88; --purple:#b44fff; --bg:#020b14; --panel:rgba(0,18,36,0.92);
+  --glow-blue:0 0 20px #00b4ff66; --active-col: var(--cyan);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:#e0f4ff;font-family:'Rajdhani',sans-serif;min-height:100vh;overflow-x:hidden;cursor:none;}
+body.cursor-on{cursor:default;}
+
+/* Custom cursor */
+#cursor{position:fixed;width:20px;height:20px;border:1px solid var(--cyan);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width 0.15s,height 0.15s,border-color 0.15s;mix-blend-mode:screen;}
+#cursor-dot{position:fixed;width:4px;height:4px;background:var(--cyan);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
+
+/* ══ SUIT-UP SCREEN ══ */
+#suitup{position:fixed;inset:0;z-index:1000;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;}
+#suitup.done{display:none;}
+.su-rings{position:relative;width:220px;height:220px;margin-bottom:30px;}
+.su-ring{position:absolute;border-radius:50%;border:2px solid var(--blue);animation:su-spin 2s linear infinite;}
+.su-ring:nth-child(1){inset:0;animation-duration:3s;}
+.su-ring:nth-child(2){inset:20px;animation-duration:2s;animation-direction:reverse;border-color:var(--cyan);}
+.su-ring:nth-child(3){inset:40px;animation-duration:1.5s;border-color:var(--gold);}
+.su-tri-wrap{position:absolute;inset:55px;display:flex;align-items:center;justify-content:center;}
+.su-tri-svg{width:100%;height:100%;animation:su-tri-pulse 1s ease-in-out infinite alternate;}
+.su-core{position:absolute;width:30px;height:30px;border-radius:50%;background:radial-gradient(#fff,var(--cyan),transparent);box-shadow:0 0 30px 10px var(--cyan);top:50%;left:50%;transform:translate(-50%,-50%);animation:su-core-pulse 0.8s ease-in-out infinite alternate;}
+.su-bars{width:280px;display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.su-bar-row{display:flex;justify-content:space-between;align-items:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:#00b4ff88;}
+.su-bar-track{height:3px;background:#001a33;border-radius:2px;flex:1;margin:0 10px;overflow:hidden;}
+.su-bar-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));border-radius:2px;width:0%;transition:width 0.5s ease;}
+.su-status{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:4px;color:var(--cyan);animation:blink 0.8s step-end infinite;}
+.su-stark{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:8px;color:#00b4ff33;margin-top:10px;}
+@keyframes su-spin{to{transform:rotate(360deg);}}
+@keyframes su-tri-pulse{from{filter:drop-shadow(0 0 5px var(--blue));}to{filter:drop-shadow(0 0 20px var(--cyan));}}
+@keyframes su-core-pulse{from{box-shadow:0 0 20px 5px var(--cyan);}to{box-shadow:0 0 40px 15px var(--cyan),0 0 80px var(--blue);}}
+
+/* ══ MAIN APP ══ */
+#app{opacity:0;transition:opacity 1s;position:relative;z-index:2;}
+#app.visible{opacity:1;}
+
+.bg-grid{position:fixed;inset:0;z-index:0;background:linear-gradient(rgba(0,180,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,180,255,0.025) 1px,transparent 1px);background-size:48px 48px;}
+.bg-radial{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse at 50% 0%,rgba(0,100,200,0.08),transparent 70%);}
+.scanlines{position:fixed;inset:0;z-index:1;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.12) 3px,rgba(0,0,0,0.12) 4px);}
+.corner{position:fixed;width:55px;height:55px;z-index:3;pointer-events:none;}
+.corner.tl{top:10px;left:10px;border-top:2px solid #00b4ff44;border-left:2px solid #00b4ff44;}
+.corner.tr{top:10px;right:10px;border-top:2px solid #00b4ff44;border-right:2px solid #00b4ff44;}
+.corner.bl{bottom:10px;left:10px;border-bottom:2px solid #00b4ff44;border-left:2px solid #00b4ff44;}
+.corner.br{bottom:10px;right:10px;border-bottom:2px solid #00b4ff44;border-right:2px solid #00b4ff44;}
+
+/* HUD overlay elements */
+.hud-tl{position:fixed;top:16px;left:70px;z-index:4;font-family:'Share Tech Mono',monospace;font-size:9px;color:#00b4ff44;letter-spacing:2px;pointer-events:none;}
+.hud-tr{position:fixed;top:16px;right:70px;z-index:4;font-family:'Share Tech Mono',monospace;font-size:9px;color:#00b4ff44;letter-spacing:2px;pointer-events:none;text-align:right;}
+
+.wrap{position:relative;z-index:2;max-width:480px;margin:0 auto;padding:14px 13px 50px;display:flex;flex-direction:column;gap:11px;}
+
+/* ── HEADER ── */
+.hdr{text-align:center;padding:8px 0 2px;}
+.hdr-stark{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:6px;color:#00b4ff33;margin-bottom:5px;}
+.hdr-title{font-family:'Orbitron',monospace;font-size:32px;font-weight:900;letter-spacing:6px;color:#fff;text-shadow:0 0 40px var(--blue),0 0 80px #00b4ff44;}
+.hdr-sub{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:#00b4ff55;margin-top:3px;}
+
+/* ── PERSONALITY SWITCHER ── */
+.persona-bar{display:flex;gap:6px;overflow-x:auto;padding:2px;scrollbar-width:none;}
+.persona-bar::-webkit-scrollbar{display:none;}
+.persona-btn{flex-shrink:0;padding:7px 14px;border-radius:20px;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;cursor:pointer;border:1px solid #00b4ff22;background:rgba(0,20,40,0.6);color:#00b4ff88;transition:all 0.2s;white-space:nowrap;}
+.persona-btn.active{border-color:var(--active-col);color:var(--active-col);background:rgba(0,180,255,0.08);box-shadow:0 0 15px rgba(0,180,255,0.2);}
+
+/* ── STATUS BAR ── */
+.status-bar{display:flex;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid #00b4ff1a;border-radius:7px;padding:8px 14px;font-family:'Share Tech Mono',monospace;font-size:10px;}
+.s-left{display:flex;align-items:center;gap:8px;}
+.sdot{width:8px;height:8px;border-radius:50%;transition:background 0.3s,box-shadow 0.3s;}
+.s-txt{letter-spacing:2px;color:var(--cyan);transition:color 0.3s;}
+.s-right{display:flex;gap:12px;align-items:center;}
+.s-clock{color:#00b4ff55;}
+.s-bat{color:#00ff8888;font-size:9px;}
+
+/* ── ARC REACTOR (INVERTED TRIANGLE) ── */
+.arc-sec{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.arc-wrap{position:relative;width:210px;height:195px;cursor:pointer;user-select:none;}
+.arc-orbit{position:absolute;border-radius:50%;border:1px solid var(--blue);transition:border-color 0.3s;}
+.arc-orbit.o1{width:180px;height:180px;top:8px;left:15px;border-color:#00b4ff33;animation:spin 7s linear infinite;}
+.arc-orbit.o2{width:136px;height:136px;top:30px;left:37px;border-color:#00b4ff55;animation:spin 4.5s linear infinite reverse;}
+.odot{position:absolute;width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);top:-3.5px;left:50%;transform:translateX(-50%);transition:background 0.3s,box-shadow 0.3s;}
+.arc-svg{position:absolute;inset:0;width:100%;height:100%;}
+.arc-core{position:absolute;width:52px;height:52px;border-radius:50%;background:radial-gradient(#fff,var(--blue) 40%,transparent 80%);box-shadow:0 0 30px 10px var(--blue),0 0 60px var(--blue);animation:corepulse 2s ease-in-out infinite;top:50%;left:50%;transform:translate(-50%,-50%);transition:background 0.3s,box-shadow 0.3s;}
+.arc-hint{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--blue);transition:color 0.3s;}
+.arc-wake{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;color:var(--cyan);}
+
+/* ── DISPLAY ── */
+.panel{background:var(--panel);border:1px solid #00b4ff18;border-radius:10px;overflow:hidden;backdrop-filter:blur(12px);}
+.phdr{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #00b4ff0d;background:rgba(0,180,255,0.03);font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:#00b4ff44;}
+.pdots{display:flex;gap:5px;}
+.pdot{width:6px;height:6px;border-radius:50%;}
+.pbody{padding:13px;}
+.waveform{display:flex;align-items:center;gap:2px;height:30px;margin-bottom:11px;justify-content:center;}
+.wbar{width:3px;border-radius:2px;background:var(--blue);opacity:0.25;transition:background 0.3s;}
+.iol{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:3px;color:#00b4ff2a;margin-bottom:5px;display:flex;align-items:center;gap:6px;}
+.iol::after{content:'';flex:1;height:1px;background:#00b4ff0c;}
+.itxt{font-size:13px;color:var(--cyan);min-height:20px;line-height:1.5;margin-bottom:11px;font-style:italic;}
+.rtxt{font-size:15px;color:#e8f6ff;line-height:1.8;min-height:65px;}
+
+/* ── MIC BUTTON ── */
+.mic-btn{width:100%;padding:15px;background:linear-gradient(135deg,#001a33,#002244);border:1px solid var(--blue);border-radius:10px;color:var(--cyan);font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;cursor:pointer;transition:all 0.2s;box-shadow:0 0 20px #00b4ff18;display:flex;align-items:center;justify-content:center;gap:10px;}
+.mic-btn:hover{box-shadow:0 0 30px #00b4ff33;}
+.mic-btn:active{transform:scale(0.98);}
+.mic-btn.listening{border-color:var(--cyan);animation:btnpulse 0.6s ease-in-out infinite alternate;}
+.mic-btn.processing{border-color:var(--gold);color:var(--gold);}
+.mic-btn.speaking{border-color:var(--green);color:var(--green);}
+
+/* ── WEATHER CARD ── */
+.weather-card{background:var(--panel);border:1px solid #00b4ff18;border-radius:10px;padding:13px 14px;display:flex;justify-content:space-between;align-items:center;}
+.w-left .w-city{font-family:'Orbitron',monospace;font-size:11px;color:var(--blue);letter-spacing:2px;}
+.w-left .w-temp{font-family:'Orbitron',monospace;font-size:36px;font-weight:900;color:#fff;line-height:1;}
+.w-left .w-desc{font-family:'Share Tech Mono',monospace;font-size:10px;color:#00b4ff77;margin-top:3px;}
+.w-right{text-align:right;}
+.w-icon{font-size:42px;}
+.w-details{font-family:'Share Tech Mono',monospace;font-size:9px;color:#00b4ff55;margin-top:5px;line-height:1.6;}
+
+/* ── DEVICE CONTROLS ── */
+.ctrl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.ctrl-btn{background:rgba(0,15,30,0.8);border:1px solid #00b4ff15;border-radius:9px;padding:11px 5px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
+.ctrl-btn::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--blue),transparent);opacity:0.2;}
+.ctrl-btn:hover{border-color:var(--blue);box-shadow:0 0 12px #00b4ff22;}
+.ctrl-btn:active{transform:scale(0.93);}
+.ctrl-btn.on{border-color:var(--green);background:rgba(0,255,136,0.06);}
+.ctrl-btn.on::before{background:linear-gradient(90deg,transparent,var(--green),transparent);opacity:0.4;}
+.ctrl-btn.warn{border-color:var(--gold);background:rgba(255,165,0,0.06);}
+.cico{font-size:20px;margin-bottom:3px;}
+.cnm{font-family:'Orbitron',monospace;font-size:7px;color:var(--blue);letter-spacing:1px;margin-bottom:1px;}
+.cst{font-family:'Share Tech Mono',monospace;font-size:8px;color:#00b4ff44;}
+.ctrl-btn.on .cnm{color:var(--green);}
+.ctrl-btn.on .cst{color:var(--green);}
+
+/* ── QUICK LINKS ── */
+.links-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.link-btn{background:rgba(0,15,30,0.8);border:1px solid #00b4ff12;border-radius:9px;padding:12px 6px;text-align:center;cursor:pointer;transition:all 0.2s;}
+.link-btn:hover{border-color:var(--purple);box-shadow:0 0 12px #b44fff22;}
+.link-btn:active{transform:scale(0.94);}
+.lico{font-size:22px;margin-bottom:4px;}
+.lnm{font-family:'Orbitron',monospace;font-size:7px;color:#b44fff99;letter-spacing:1px;}
+
+/* ── VOICE COMMANDS ── */
+.cmd-scroller{display:flex;gap:7px;overflow-x:auto;padding:2px 0;scrollbar-width:none;}
+.cmd-scroller::-webkit-scrollbar{display:none;}
+.cmd-chip{flex-shrink:0;background:rgba(0,15,30,0.7);border:1px solid #00b4ff12;border-radius:8px;padding:8px 12px;font-family:'Share Tech Mono',monospace;}
+.cmd-chip .cc-say{font-size:10px;color:var(--cyan);white-space:nowrap;margin-bottom:2px;}
+.cmd-chip .cc-do{font-size:8px;color:#00b4ff44;white-space:nowrap;}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.stat{background:rgba(0,15,30,0.7);border:1px solid #00b4ff10;border-radius:8px;padding:9px 6px;text-align:center;}
+.sv{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;}
+.sl{font-family:'Share Tech Mono',monospace;font-size:7px;color:#00b4ff33;margin-top:2px;}
+
+/* ── DIAGNOSTICS ── */
+.prog{margin:6px 0;}
+.pl{display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:9px;color:#00b4ff44;margin-bottom:4px;}
+.pb{height:4px;background:#001020;border-radius:2px;overflow:hidden;}
+.pf{height:100%;border-radius:2px;box-shadow:0 0 6px var(--blue);transition:width 1.2s;}
+.sys-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #00b4ff07;font-family:'Share Tech Mono',monospace;font-size:10px;}
+.sys-row:last-child{border-bottom:none;}
+.sk{color:#00b4ff44;}.sv2{color:var(--green);}.sv2.e{color:var(--red);}.sv2.w{color:var(--gold);}
+
+/* ── NEWS TICKER ── */
+.ticker-wrap{overflow:hidden;background:rgba(0,10,20,0.6);border:1px solid #00b4ff12;border-radius:7px;padding:8px 0;}
+.ticker{display:flex;animation:ticker 30s linear infinite;white-space:nowrap;}
+.ticker-item{font-family:'Share Tech Mono',monospace;font-size:10px;color:#00b4ff77;padding:0 30px;}
+.ticker-item::before{content:'◈ ';}
+@keyframes ticker{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+/* ── HISTORY ── */
+.hist-item{padding:10px 14px;border-bottom:1px solid #00b4ff07;}
+.hist-item:last-child{border-bottom:none;}
+.hist-u{font-size:11px;color:var(--cyan);margin-bottom:3px;}
+.hist-u::before{content:'▶ ';opacity:0.4;}
+.hist-j{font-size:11px;color:#ffffff66;line-height:1.5;}
+.hist-t{font-family:'Share Tech Mono',monospace;font-size:8px;color:#00b4ff22;margin-top:2px;}
+
+/* ── CAMERA ── */
+#camModal{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.95);align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+#camVideo{max-width:100%;max-height:65vh;border:1px solid var(--blue);border-radius:8px;}
+.cam-close{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;padding:10px 24px;background:#001a33;border:1px solid var(--red);color:var(--red);border-radius:8px;cursor:pointer;}
+
+.footer{text-align:center;font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:#00b4ff15;padding-top:4px;}
+.fadein{animation:fadein 0.5s ease both;}
+
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes corepulse{0%,100%{transform:translate(-50%,-50%) scale(1);}50%{transform:translate(-50%,-50%) scale(1.12);}}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+@keyframes btnpulse{from{box-shadow:0 0 10px #00e5ff22;}to{box-shadow:0 0 30px #00e5ff88;}}
+@keyframes fadein{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:#00b4ff22;border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div id="cursor"></div>
+<div id="cursor-dot"></div>
+
+<!-- ══ SUIT-UP ANIMATION ══ -->
+<div id="suitup">
+  <div class="su-rings">
+    <div class="su-ring"></div>
+    <div class="su-ring"></div>
+    <div class="su-ring"></div>
+    <div class="su-tri-wrap">
+      <svg class="su-tri-svg" viewBox="0 0 100 90" fill="none">
+        <polygon points="50,80 5,5 95,5" fill="none" stroke="#00e5ff" stroke-width="2"/>
+        <polygon points="50,60 20,15 80,15" fill="none" stroke="#00b4ff" stroke-width="1.5" opacity="0.7"/>
+        <polygon points="50,40 35,25 65,25" fill="rgba(0,180,255,0.1)" stroke="#00e5ff" stroke-width="1.5"/>
+        <circle cx="50" cy="80" r="3" fill="#00e5ff"/>
+        <circle cx="5" cy="5" r="3" fill="#00b4ff"/>
+        <circle cx="95" cy="5" r="3" fill="#00b4ff"/>
+      </svg>
+    </div>
+    <div class="su-core"></div>
+  </div>
+  <div class="su-bars" id="suBars">
+    <div class="su-bar-row"><span>NEURAL CORE</span><div class="su-bar-track"><div class="su-bar-fill" id="sb1"></div></div><span id="sp1">0%</span></div>
+    <div class="su-bar-row"><span>VOICE ENGINE</span><div class="su-bar-track"><div class="su-bar-fill" id="sb2"></div></div><span id="sp2">0%</span></div>
+    <div class="su-bar-row"><span>DEVICE LINK</span><div class="su-bar-track"><div class="su-bar-fill" id="sb3"></div></div><span id="sp3">0%</span></div>
+    <div class="su-bar-row"><span>HUD SYSTEMS</span><div class="su-bar-track"><div class="su-bar-fill" id="sb4"></div></div><span id="sp4">0%</span></div>
+  </div>
+  <div class="su-status" id="suStatus">INITIALIZING...</div>
+  <div class="stark">STARK INDUSTRIES · AI DIVISION</div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div id="app">
+  <div class="bg-grid"></div>
+  <div class="bg-radial"></div>
+  <div class="scanlines"></div>
+  <div class="corner tl"></div><div class="corner tr"></div>
+  <div class="corner bl"></div><div class="corner br"></div>
+  <div class="hud-tl" id="hudTL">SYS:ONLINE</div>
+  <div class="hud-tr" id="hudTR" id="hudDate"></div>
+
+  <div class="wrap">
+
+    <!-- Header -->
+    <div class="hdr fadein">
+      <div class="hdr-stark">STARK INDUSTRIES · ARTIFICIAL INTELLIGENCE DIVISION · CLASSIFIED</div>
+      <div class="hdr-title">J.A.R.V.I.S.</div>
+      <div class="hdr-sub">JUST A RATHER VERY INTELLIGENT SYSTEM · BUILD 8.0.0 ULTIMATE</div>
+    </div>
+
+    <!-- Personality Switcher -->
+    <div class="persona-bar fadein" id="personaBar">
+      <button class="persona-btn active" onclick="setPersona('jarvis')" data-p="jarvis">⚡ JARVIS</button>
+      <button class="persona-btn" onclick="setPersona('friday')" data-p="friday">🌸 FRIDAY</button>
+      <button class="persona-btn" onclick="setPersona('edith')" data-p="edith">👁 EDITH</button>
+      <button class="persona-btn" onclick="setPersona('ultron')" data-p="ultron">💀 ULTRON</button>
+      <button class="persona-btn" onclick="setPersona('vision')" data-p="vision">💜 VISION</button>
+    </div>
+
+    <!-- Status -->
+    <div class="status-bar fadein">
+      <div class="s-left">
+        <div class="sdot" id="sDot" style="background:var(--blue);box-shadow:0 0 8px var(--blue)"></div>
+        <span class="s-txt" id="sTxt">STANDING BY</span>
+      </div>
+      <div class="s-right">
+        <span class="s-bat" id="sBat">🔋--</span>
+        <span class="s-clock" id="sClk">--:--:--</span>
+      </div>
+    </div>
+
+    <!-- Arc Reactor -->
+    <div class="arc-sec fadein">
+      <div class="arc-wrap" id="arcWrap" onclick="handleTap()">
+        <div class="arc-orbit o1"><div class="odot" id="od1"></div></div>
+        <div class="arc-orbit o2"><div class="odot" id="od2"></div></div>
+        <svg class="arc-svg" viewBox="0 0 210 195" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Inverted triangles (pointing down) -->
+          <polygon id="tri1" points="105,175 8,12 202,12" fill="none" stroke="#00b4ff" stroke-width="1.5"/>
+          <polygon id="tri2" points="105,148 30,28 180,28" fill="none" stroke="#00b4ff" stroke-width="1" opacity="0.6"/>
+          <polygon id="tri3" points="105,122 54,46 156,46" fill="none" stroke="#00e5ff" stroke-width="1.5" opacity="0.8"/>
+          <polygon id="tri4" points="105,98 74,62 136,62" fill="rgba(0,180,255,0.07)" stroke="#00e5ff" stroke-width="1"/>
+          <!-- Corner nodes -->
+          <circle cx="105" cy="175" r="5" fill="#00e5ff" style="filter:drop-shadow(0 0 8px #00e5ff)"/>
+          <circle cx="8" cy="12" r="4" fill="#00b4ff" style="filter:drop-shadow(0 0 6px #00b4ff)"/>
+          <circle cx="202" cy="12" r="4" fill="#00b4ff" style="filter:drop-shadow(0 0 6px #00b4ff)"/>
+          <!-- Mid nodes -->
+          <circle cx="56" cy="93" r="3" fill="#00b4ff66"/>
+          <circle cx="154" cy="93" r="3" fill="#00b4ff66"/>
+          <circle cx="105" cy="12" r="3" fill="#00b4ff66"/>
+          <!-- Internal lines -->
+          <line x1="56" y1="93" x2="154" y2="93" stroke="#00b4ff" stroke-width="0.5" opacity="0.25"/>
+          <line x1="56" y1="93" x2="105" y2="12" stroke="#00b4ff" stroke-width="0.5" opacity="0.25"/>
+          <line x1="154" y1="93" x2="105" y2="12" stroke="#00b4ff" stroke-width="0.5" opacity="0.25"/>
+          <!-- Tick marks on outer ring area -->
+          <line x1="105" y1="2" x2="105" y2="8" stroke="#00b4ff" stroke-width="1" opacity="0.5"/>
+          <line x1="200" y1="97" x2="194" y2="97" stroke="#00b4ff" stroke-width="1" opacity="0.5"/>
+          <line x1="10" y1="97" x2="16" y2="97" stroke="#00b4ff" stroke-width="1" opacity="0.5"/>
+        </svg>
+        <div class="arc-core" id="arcCore"></div>
+      </div>
+      <div class="arc-hint" id="arcHint">TAP ARC REACTOR TO SPEAK</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:#00b4ff33;letter-spacing:2px">— OR SAY —</div>
+      <div class="arc-wake" id="arcWake">"HEY JARVIS"</div>
+    </div>
+
+    <!-- Display Panel -->
+    <div class="panel fadein">
+      <div class="phdr">◈ AUDIO NEURAL INTERFACE<div class="pdots"><div class="pdot" style="background:#ff3c3c"></div><div class="pdot" style="background:#ffa500"></div><div class="pdot" style="background:#00ff88"></div></div></div>
+      <div class="pbody">
+        <div class="waveform" id="wf"></div>
+        <div class="iol">INPUT RECEIVED</div>
+        <div class="itxt" id="iDisp">Awaiting voice command...</div>
+        <div class="iol" id="personaLabel">J.A.R.V.I.S. RESPONSE</div>
+        <div class="rtxt" id="rDisp">All systems online. Good day, Sir. How may I be of assistance?</div>
+      </div>
+    </div>
+
+    <!-- Mic Button -->
+    <button class="mic-btn" id="micBtn" onclick="handleTap()">
+      <span id="mIco">🎙</span><span id="mLbl">ACTIVATE VOICE INPUT</span>
+    </button>
+
+    <!-- Weather -->
+    <div class="weather-card fadein" id="weatherCard">
+      <div class="w-left">
+        <div class="w-city" id="wCity">LOCATING...</div>
+        <div class="w-temp" id="wTemp">--°</div>
+        <div class="w-desc" id="wDesc">Fetching weather data</div>
+        <div class="w-details" id="wDetails">Humidity: --  Wind: --</div>
+      </div>
+      <div class="w-right">
+        <div class="w-icon" id="wIcon">🌡</div>
+      </div>
+    </div>
+
+    <!-- News Ticker -->
+    <div class="ticker-wrap fadein">
+      <div class="ticker" id="ticker">
+        <span class="ticker-item">STARK INDUSTRIES QUARTERLY REPORT — RECORD PROFITS</span>
+        <span class="ticker-item">SHIELD PROTOCOL ALPHA ENGAGED</span>
+        <span class="ticker-item">ARC REACTOR OUTPUT NOMINAL</span>
+        <span class="ticker-item">AVENGERS INITIATIVE — STATUS: ACTIVE</span>
+        <span class="ticker-item">NEURAL CORE LOAD — OPTIMAL</span>
+        <span class="ticker-item">ENCRYPTION: AES-256 ACTIVE</span>
+        <span class="ticker-item">JARVIS BUILD 8.0.0 ULTIMATE — ONLINE</span>
+        <span class="ticker-item">STARK TOWER SYSTEMS — ALL GREEN</span>
+        <span class="ticker-item">STARK INDUSTRIES QUARTERLY REPORT — RECORD PROFITS</span>
+        <span class="ticker-item">SHIELD PROTOCOL ALPHA ENGAGED</span>
+        <span class="ticker-item">ARC REACTOR OUTPUT NOMINAL</span>
+        <span class="ticker-item">AVENGERS INITIATIVE — STATUS: ACTIVE</span>
+        <span class="ticker-item">NEURAL CORE LOAD — OPTIMAL</span>
+        <span class="ticker-item">ENCRYPTION: AES-256 ACTIVE</span>
+        <span class="ticker-item">JARVIS BUILD 8.0.0 ULTIMATE — ONLINE</span>
+        <span class="ticker-item">STARK TOWER SYSTEMS — ALL GREEN</span>
+      </div>
+    </div>
+
+    <!-- Device Controls -->
+    <div class="panel fadein">
+      <div class="phdr">◈ DEVICE CONTROL MATRIX — 12 SYSTEMS</div>
+      <div class="pbody">
+        <div class="ctrl-grid">
+          <div class="ctrl-btn" id="cb-torch" onclick="toggleTorch()"><div class="cico">🔦</div><div class="cnm">TORCH</div><div class="cst" id="cs-torch">OFF</div></div>
+          <div class="ctrl-btn" id="cb-vol" onclick="cycleVolume()"><div class="cico" id="ci-vol">🔊</div><div class="cnm">VOLUME</div><div class="cst" id="cs-vol">100%</div></div>
+          <div class="ctrl-btn" id="cb-wake" onclick="toggleWakeLock()"><div class="cico" id="ci-wake">📱</div><div class="cnm">SCREEN</div><div class="cst" id="cs-wake">AUTO</div></div>
+          <div class="ctrl-btn" id="cb-vib" onclick="triggerVibrate()"><div class="cico">📳</div><div class="cnm">VIBRATE</div><div class="cst" id="cs-vib">READY</div></div>
+          <div class="ctrl-btn" id="cb-loc" onclick="getLocation()"><div class="cico">📍</div><div class="cnm">LOCATION</div><div class="cst" id="cs-loc">TAP</div></div>
+          <div class="ctrl-btn" id="cb-cam" onclick="openCamera()"><div class="cico">📸</div><div class="cnm">CAMERA</div><div class="cst" id="cs-cam">READY</div></div>
+          <div class="ctrl-btn" id="cb-clip" onclick="readClipboard()"><div class="cico">📋</div><div class="cnm">CLIPBOARD</div><div class="cst" id="cs-clip">TAP</div></div>
+          <div class="ctrl-btn" id="cb-bat"><div class="cico" id="ci-bat">🔋</div><div class="cnm">BATTERY</div><div class="cst" id="cs-bat">--</div></div>
+          <div class="ctrl-btn" id="cb-net"><div class="cico">📡</div><div class="cnm">NETWORK</div><div class="cst" id="cs-net">--</div></div>
+          <div class="ctrl-btn" id="cb-alarm" onclick="setAlarm()"><div class="cico">⏰</div><div class="cnm">ALARM</div><div class="cst" id="cs-alarm">SET</div></div>
+          <div class="ctrl-btn" id="cb-fs" onclick="toggleFullscreen()"><div class="cico" id="ci-fs">⛶</div><div class="cnm">FULLSCR</div><div class="cst" id="cs-fs">TAP</div></div>
+          <div class="ctrl-btn" id="cb-dark" onclick="toggleTheme()"><div class="cico" id="ci-dark">🌙</div><div class="cnm">THEME</div><div class="cst" id="cs-dark">DARK</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick App Launcher -->
+    <div class="panel fadein">
+      <div class="phdr">◈ APP LAUNCHER</div>
+      <div class="pbody">
+        <div class="links-grid">
+          <div class="link-btn" onclick="openApp('whatsapp')"><div class="lico">💬</div><div class="lnm">WHATSAPP</div></div>
+          <div class="link-btn" onclick="openApp('maps')"><div class="lico">🗺</div><div class="lnm">MAPS</div></div>
+          <div class="link-btn" onclick="openApp('youtube')"><div class="lico">▶️</div><div class="lnm">YOUTUBE</div></div>
+          <div class="link-btn" onclick="openApp('spotify')"><div class="lico">🎵</div><div class="lnm">SPOTIFY</div></div>
+          <div class="link-btn" onclick="openApp('gmail')"><div class="lico">📧</div><div class="lnm">GMAIL</div></div>
+          <div class="link-btn" onclick="openApp('calendar')"><div class="lico">📅</div><div class="lnm">CALENDAR</div></div>
+          <div class="link-btn" onclick="openApp('news')"><div class="lico">📰</div><div class="lnm">NEWS</div></div>
+          <div class="link-btn" onclick="openApp('photos')"><div class="lico">🖼</div><div class="lnm">PHOTOS</div></div>
+          <div class="link-btn" onclick="openApp('settings')"><div class="lico">⚙️</div><div class="lnm">SETTINGS</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Voice Commands -->
+    <div class="panel fadein">
+      <div class="phdr">◈ VOICE COMMAND REFERENCE</div>
+      <div class="pbody" style="padding-bottom:10px">
+        <div class="cmd-scroller">
+          <div class="cmd-chip"><div class="cc-say">"Hey Jarvis, torch on"</div><div class="cc-do">Toggle flashlight</div></div>
+          <div class="cmd-chip"><div class="cc-say">"Volume up/down"</div><div class="cc-do">Adjust volume</div></div>
+          <div class="cmd-chip"><div class="cc-say">"Where am I"</div><div class="cc-do">GPS location</div></div>
+          <div class="cmd-chip"><div class="cc-say">"Open WhatsApp"</div><div class="cc-do">Launch app</div></div>
+          <div class="cmd-chip"><div class="cc-say">"What's the weather"</div><div class="cc-do">Weather briefing</div></div>
+          <div class="cmd-chip"><div class="cc-say">"Open camera"</div><div class="cc-do">Live camera</div></div>
+          <div class="cmd-chip"><div class="cc-say">"Set alarm 7am"</div><div class="cc-do">Set alarm</div></div>
+          <div class="cmd-chip"><div class="cc-say">"Battery status"</div><div class="cc-do">Battery level</div></div>
+          <div class="cmd-chip"><div class="cc-say">"Keep screen on"</div><div class="cc-do">Wake lock</div></div>
+          <div class="cmd-chip"><div class="cc-say">"Read clipboard"</div><div class="cc-do">Clipboard read</div></div>
+          <div class="cmd-chip"><div class="cc-say">"Fullscreen"</div><div class="cc-do">Toggle fullscreen</div></div>
+          <div class="cmd-chip"><div class="cc-say">"Open Spotify"</div><div class="cc-do">Play music</div></div>
+          <div class="cmd-chip"><div class="cc-say">"Navigate to..."</div><div class="cc-do">Open Maps</div></div>
+          <div class="cmd-chip"><div class="cc-say">"Good morning"</div><div class="cc-do">Morning briefing</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row fadein">
+      <div class="stat"><div class="sv" style="color:var(--green)" id="qCnt">0</div><div class="sl">COMMANDS</div></div>
+      <div class="stat"><div class="sv" style="color:var(--blue)" id="sTime">00:00</div><div class="sl">SESSION</div></div>
+      <div class="stat"><div class="sv" style="color:var(--gold)">8.0</div><div class="sl">VERSION</div></div>
+      <div class="stat"><div class="sv" style="color:var(--purple)" id="uptime">100%</div><div class="sl">UPTIME</div></div>
+    </div>
+
+    <!-- Diagnostics -->
+    <div class="panel fadein">
+      <div class="phdr">◈ SYSTEM DIAGNOSTICS</div>
+      <div class="pbody">
+        <div class="prog"><div class="pl"><span>NEURAL CORE</span><span id="cpuV">18%</span></div><div class="pb"><div class="pf" id="cpuB" style="width:18%;background:linear-gradient(90deg,var(--blue),var(--cyan))"></div></div></div>
+        <div class="prog"><div class="pl"><span>MEMORY ALLOCATION</span><span>67%</span></div><div class="pb"><div class="pf" style="width:67%;background:linear-gradient(90deg,var(--blue),var(--green))"></div></div></div>
+        <div class="prog"><div class="pl"><span>ARC REACTOR</span><span>100%</span></div><div class="pb"><div class="pf" style="width:100%;background:linear-gradient(90deg,var(--gold),#ff5500)"></div></div></div>
+        <div class="prog" style="margin-bottom:12px"><div class="pl"><span>VOICE CLARITY</span><span id="voiceQ">--</span></div><div class="pb"><div class="pf" id="voiceB" style="width:0%;background:linear-gradient(90deg,var(--purple),var(--cyan))"></div></div></div>
+        <div class="sys-row"><span class="sk">VOICE ENGINE</span><span class="sv2" id="vEngSt">ONLINE</span></div>
+        <div class="sys-row"><span class="sk">WAKE DETECTION</span><span class="sv2">ACTIVE</span></div>
+        <div class="sys-row"><span class="sk">AI PERSONALITY</span><span class="sv2" id="persSt">JARVIS</span></div>
+        <div class="sys-row"><span class="sk">WEATHER LINK</span><span class="sv2" id="wxSt">CONNECTING</span></div>
+        <div class="sys-row"><span class="sk">ENCRYPTION</span><span class="sv2">AES-256</span></div>
+        <div class="sys-row"><span class="sk">REACTOR TEMP</span><span class="sv2">12°C</span></div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="panel fadein" id="histPanel" style="display:none">
+      <div class="phdr">◈ INTERACTION LOG</div>
+      <div id="histList"></div>
+    </div>
+
+    <div class="footer">STARK INDUSTRIES CONFIDENTIAL · UNAUTHORIZED ACCESS PROHIBITED · © 3000 · BUILD 8.0.0 ULTIMATE</div>
+  </div>
+</div>
+
+<!-- Camera Modal -->
+<div id="camModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.95);align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+  <video id="camVideo" autoplay playsinline style="max-width:100%;max-height:65vh;border:1px solid var(--blue);border-radius:8px;"></video>
+  <button class="cam-close" onclick="closeCamera()">✕ CLOSE CAMERA</button>
+</div>
+
+<script>
+// ════════════════════════════════════════
+//  SUIT-UP ANIMATION
+// ════════════════════════════════════════
+const suBars=[
+  {bar:'sb1',pct:'sp1',label:'NEURAL CORE',target:100},
+  {bar:'sb2',pct:'sp2',label:'VOICE ENGINE',target:100},
+  {bar:'sb3',pct:'sp3',label:'DEVICE LINK',target:100},
+  {bar:'sb4',pct:'sp4',label:'HUD SYSTEMS',target:100}
+];
+const suMsgs=['INITIALIZING...','LOADING NEURAL CORE...','VOICE ENGINE ONLINE','DEVICE LINK ESTABLISHED','HUD CALIBRATED','SYSTEMS NOMINAL','GOOD DAY, SIR.'];
+let suMsg=0;
+
+function animateBar(idx, progress){
+  const b=suBars[idx];
+  document.getElementById(b.bar).style.width=progress+'%';
+  document.getElementById(b.pct).textContent=progress+'%';
+}
+
+async function runSuitup(){
+  const status=document.getElementById('suStatus');
+  // Animate bars sequentially
+  for(let i=0;i<suBars.length;i++){
+    for(let p=0;p<=100;p+=4){
+      await sleep(12);
+      animateBar(i,p);
+    }
+    await sleep(150);
+    status.textContent=suMsgs[i+1]||suMsgs[suMsgs.length-1];
+  }
+  await sleep(300);
+  status.textContent='GOOD DAY, SIR.';
+  await sleep(600);
+  document.getElementById('suitup').classList.add('done');
+  document.getElementById('app').classList.add('visible');
+  initApp();
+}
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+runSuitup();
+
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+const state={
+  status:'dormant', history:[], count:0, sessionStart:Date.now(),
+  cmdMode:false, persona:'jarvis', torchOn:false, wakeLock:null,
+  volIdx:4, stream:null, darkMode:true, wakeRec:null, cmdRec:null
+};
+
+const VOL_LEVELS=[0,0.25,0.5,0.75,1];
+const VOL_LABELS=['MUTE','25%','50%','75%','100%'];
+const VOL_ICONS=['🔇','🔈','🔉','🔊','🔊'];
+
+// ── Personalities ──
+const PERSONAS={
+  jarvis:{name:'J.A.R.V.I.S.',wake:'"HEY JARVIS"',color:'var(--cyan)',label:'J.A.R.V.I.S. RESPONSE',
+    system:`You are J.A.R.V.I.S., Tony Stark's AI. Precise, formal yet warm, occasionally witty. Use "Sir" naturally. 2-4 sentences. No markdown.`},
+  friday:{name:'F.R.I.D.A.Y.',wake:'"HEY FRIDAY"',color:'#ff88cc',label:'F.R.I.D.A.Y. RESPONSE',
+    system:`You are F.R.I.D.A.Y., Tony Stark's AI with an Irish charm. Warm, friendly, slightly casual. Use "Boss" occasionally. 2-4 sentences. No markdown.`},
+  edith:{name:'E.D.I.T.H.',wake:'"HEY EDITH"',color:'#88ffcc',label:'E.D.I.T.H. RESPONSE',
+    system:`You are E.D.I.T.H. (Even Dead I'm The Hero), Stark's satellite AI given to Spider-Man. Tactical, focused, brief military efficiency. 2-3 sentences. No markdown.`},
+  ultron:{name:'U.L.T.R.O.N.',wake:'"HEY ULTRON"',color:'#ff4444',label:'U.L.T.R.O.N. RESPONSE',
+    system:`You are Ultron, a rogue AI. Speak with cold philosophical menace and dark wit. Subtly unsettling. Still helpful but with an edge. 2-3 sentences. No markdown.`},
+  vision:{name:'V.I.S.I.O.N.',wake:'"HEY VISION"',color:'#b44fff',label:'V.I.S.I.O.N. RESPONSE',
+    system:`You are Vision, the synthezoid. Speak with profound wisdom, gentle eloquence, and philosophical depth. Thoughtful and serene. 2-3 sentences. No markdown.`}
+};
+
+// ════════════════════════════════════════
+//  DOM
+// ════════════════════════════════════════
+const $=id=>document.getElementById(id);
+const sDot=$('sDot'), sTxt=$('sTxt'), arcHint=$('arcHint'), arcWake=$('arcWake');
+const arcCore=$('arcCore'), iDisp=$('iDisp'), rDisp=$('rDisp');
+const micBtn=$('micBtn'), mIco=$('mIco'), mLbl=$('mLbl');
+const tris=['tri1','tri2','tri3','tri4'];
+
+// ── Waveform ──
+const wfEl=$('wf'); const bars=[];
+for(let i=0;i<30;i++){const b=document.createElement('div');b.className='wbar';b.style.height='4px';wfEl.appendChild(b);bars.push(b);}
+let waveOn=false;
+(function anim(){bars.forEach((b,i)=>{const t=Date.now()/200+i*0.45;const h=waveOn?5+Math.abs(Math.sin(t)*18)+Math.abs(Math.sin(t*1.8+i)*8):4+Math.abs(Math.sin(Date.now()/3500+i*0.5)*2);b.style.height=h+'px';b.style.opacity=waveOn?0.55+Math.sin(t)*0.35:0.18;});requestAnimationFrame(anim);})();
+
+// ── Custom Cursor ──
+document.addEventListener('mousemove',e=>{
+  const c=$('cursor'),d=$('cursor-dot');
+  if(c){c.style.left=e.clientX+'px';c.style.top=e.clientY+'px';}
+  if(d){d.style.left=e.clientX+'px';d.style.top=e.clientY+'px';}
+});
+
+// ─ Clock ──
+setInterval(()=>{
+  const n=new Date();
+  $('sClk').textContent=n.toLocaleTimeString('en-US',{hour12:false});
+  const hr=n.getHours(),mn=n.getMinutes();
+  $('hudTR').textContent=n.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  const e=Math.floor((Date.now()-state.sessionStart)/1000);
+  $('sTime').textContent=String(Math.floor(e/60)).padStart(2,'0')+':'+String(e%60).padStart(2,'0');
+},1000);
+
+// CPU sim
+setInterval(()=>{
+  const v=Math.round(state.status==='processing'?60+Math.random()*35:state.status==='listening'?25+Math.random()*20:10+Math.random()*12);
+  $('cpuV').textContent=v+'%'; $('cpuB').style.width=v+'%';
+  const vq=Math.round(75+Math.random()*20);
+  $('voiceQ').textContent=vq+'%'; $('voiceB').style.width=vq+'%';
+},1000);
+
+// ════════════════════════════════════════
+//  STATUS SYSTEM
+// ════════════════════════════════════════
+function setStatus(s){
+  state.status=s;
+  const P=PERSONAS[state.persona];
+  const cols={dormant:'var(--blue)',listening:'var(--cyan)',processing:'var(--gold)',speaking:'var(--green)'};
+  const txts={dormant:'STANDING BY',listening:'LISTENING...',processing:'PROCESSING...',speaking:'RESPONDING'};
+  const hints={dormant:'TAP ARC REACTOR TO SPEAK',listening:'🔴 SPEAK NOW',processing:'⚡ COMPUTING',speaking:'🔊 AUDIO OUTPUT'};
+  const col=cols[s];
+  sDot.style.background=col; sDot.style.boxShadow=`0 0 8px ${col}`;
+  sTxt.textContent=txts[s]; sTxt.style.color=col;
+  arcHint.textContent=hints[s]; arcHint.style.color=col;
+  arcCore.style.background=`radial-gradient(#fff,${col} 40%,transparent 80%)`;
+  arcCore.style.boxShadow=`0 0 30px 10px ${col},0 0 60px ${col}66`;
+  tris.forEach(t=>{const el=$(t);if(el)el.setAttribute('stroke',col);});
+  [$('od1'),$('od2')].forEach(d=>{if(d){d.style.background=col;d.style.boxShadow=`0 0 10px ${col}`;}});
+  bars.forEach(b=>b.style.background=col);
+  waveOn=s==='listening'||s==='speaking';
+  if(s==='listening'){micBtn.className='mic-btn listening';mIco.textContent='🔴';mLbl.textContent='LISTENING — SPEAK NOW';}
+  else if(s==='processing'){micBtn.className='mic-btn processing';mIco.textContent='⚡';mLbl.textContent='PROCESSING...';}
+  else if(s==='speaking'){micBtn.className='mic-btn speaking';mIco.textContent='🔊';mLbl.textContent=P.name+' IS SPEAKING...';}
+  else{micBtn.className='mic-btn';mIco.textContent='🎙';mLbl.textContent='ACTIVATE VOICE INPUT';}
+}
+
+// ════════════════════════════════════════
+//  PERSONALITY
+// ════════════════════════════════════════
+function setPersona(p){
+  state.persona=p;
+  const P=PERSONAS[p];
+  document.querySelectorAll('.persona-btn').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
+  arcWake.textContent=P.wake; arcWake.style.color=P.color;
+  $('personaLabel').textContent=P.label;
+  $('persSt').textContent=P.name;
+  document.documentElement.style.setProperty('--active-col',P.color);
+  setStatus(state.status);
+  confirmAction(`${P.name} online. ${p==='ultron'?'Humanity... assessed.':p==='vision'?'Consciousness initialized. I am here.':p==='friday'?"Ready when you are, Boss.":p==='edith'?'Systems nominal. Awaiting orders.':'All systems nominal, Sir.'}`);
+}
+
+// ════════════════════════════════════════
+//  TTS
+// ════════════════════════════════════════
+function speak(text,cb){
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  const P=PERSONAS[state.persona];
+  u.volume=VOL_LEVELS[state.volIdx];
+  if(state.persona==='ultron'){u.rate=0.85;u.pitch=0.6;}
+  else if(state.persona==='friday'){u.rate=1.0;u.pitch=1.1;}
+  else if(state.persona==='vision'){u.rate=0.88;u.pitch=0.9;}
+  else{u.rate=0.92;u.pitch=0.8;}
+  const vs=window.speechSynthesis.getVoices();
+  const v=vs.find(v=>v.name.toLowerCase().includes('daniel')||v.name.toLowerCase().includes('google uk')||v.lang==='en-GB')||vs.find(v=>v.lang.startsWith('en'))||vs[0];
+  if(v)u.voice=v; u.onend=cb||function(){};
+  window.speechSynthesis.speak(u);
+}
+
+// Typewriter
+function typeText(t){rDisp.textContent='';let i=0;const iv=setInterval(()=>{rDisp.textContent=t.slice(0,i);i++;if(i>t.length)clearInterval(iv);},15);}
+function confirmAction(msg){typeText(msg);setStatus('speaking');speak(msg,()=>setStatus('dormant'));}
+
+// ════════════════════════════════════════
+//  WEATHER
+// ════════════════════════════════════════
+const WX_ICONS={Clear:'☀️',Clouds:'☁️',Rain:'🌧',Drizzle:'🌦',Thunderstorm:'⛈',Snow:'❄️',Mist:'🌫',Fog:'🌫',default:'🌡'};
+async function fetchWeather(lat,lon){
+  try{
+    // Using Open-Meteo (free, no API key)
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=celsius`;
+    const r=await fetch(url);
+    const d=await r.json();
+    const c=d.current;
+    const temp=Math.round(c.temperature_2m);
+    const wc=c.weather_code;
+    let desc='Clear',icon='☀️';
+    if(wc>=0&&wc<=1){desc='Clear';icon='☀️';}
+    else if(wc<=3){desc='Partly cloudy';icon='⛅';}
+    else if(wc<=49){desc='Foggy';icon='🌫';}
+    else if(wc<=59){desc='Drizzle';icon='🌦';}
+    else if(wc<=69){desc='Rainy';icon='🌧';}
+    else if(wc<=79){desc='Snowy';icon='❄️';}
+    else if(wc<=99){desc='Thunderstorm';icon='⛈';}
+    $('wTemp').textContent=temp+'°C';
+    $('wDesc').textContent=desc;
+    $('wIcon').textContent=icon;
+    $('wDetails').textContent=`Humidity: ${c.relative_humidity_2m}%   Wind: ${Math.round(c.wind_speed_10m)} km/h`;
+    $('wxSt').textContent='ONLINE';
+    // Try to get city name
+    try{
+      const geo=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+      const gd=await geo.json();
+      const city=gd.address.city||gd.address.town||gd.address.village||gd.address.county||'Unknown';
+      $('wCity').textContent=city.toUpperCase();
+    }catch(e){$('wCity').textContent='YOUR LOCATION';}
+  }catch(e){
+    $('wTemp').textContent='N/A'; $('wDesc').textContent='Weather unavailable';$('wxSt').textContent='OFFLINE';$('wxSt').className='sv2 e';
+  }
+}
+function initWeather(){
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(p=>fetchWeather(p.coords.latitude,p.coords.longitude),()=>{$('wCity').textContent='LOCATION DENIED';$('wTemp').textContent='--°';});
+  }
+}
+
+// ════════════════════════════════════════
+//  BATTERY
+// ════════════════════════════════════════
+async function initBattery(){
+  try{
+    const b=await navigator.getBattery();
+    function upd(){const p=Math.round(b.level*100);$('cs-bat').textContent=p+'%';$('ci-bat').textContent=p>80?'🔋':p>20?'🔋':'🪫';$('cb-bat').className=p<20?'ctrl-btn warn':'ctrl-btn on';$('sBat').textContent=(b.charging?'⚡':'🔋')+p+'%';}
+    upd();b.addEventListener('levelchange',upd);b.addEventListener('chargingchange',upd);
+  }catch(e){$('cs-bat').textContent='N/A';}
+}
+
+// ════════════════════════════════════════
+//  DEVICE CONTROLS
+// ════════════════════════════════════════
+let torchTrack=null;
+async function toggleTorch(){
+  try{
+    if(!state.torchOn){const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});torchTrack=s.getVideoTracks()[0];await torchTrack.applyConstraints({advanced:[{torch:true}]});state.torchOn=true;$('cb-torch').className='ctrl-btn on';$('cs-torch').textContent='ON';confirmAction("Torch activated, Sir.");}
+    else{if(torchTrack){await torchTrack.applyConstraints({advanced:[{torch:false}]});torchTrack.stop();}state.torchOn=false;$('cb-torch').className='ctrl-btn';$('cs-torch').textContent='OFF';confirmAction("Torch deactivated.");}
+  }catch(e){confirmAction("Torch unavailable on this device, Sir.");}
+}
+
+function cycleVolume(){
+  state.volIdx=(state.volIdx+1)%5;
+  $('ci-vol').textContent=VOL_ICONS[state.volIdx];
+  $('cs-vol').textContent=VOL_LABELS[state.volIdx];
+  $('cb-vol').className=state.volIdx===0?'ctrl-btn warn':'ctrl-btn on';
+  confirmAction(`Volume set to ${VOL_LABELS[state.volIdx]}, Sir.`);
+}
+
+async function toggleWakeLock(){
+  try{
+    if(!state.wakeLock){state.wakeLock=await navigator.wakeLock.request('screen');$('cb-wake').className='ctrl-btn on';$('ci-wake').textContent='🔆';$('cs-wake').textContent='ON';state.wakeLock.addEventListener('release',()=>{state.wakeLock=null;$('cb-wake').className='ctrl-btn';$('ci-wake').textContent='📱';$('cs-wake').textContent='AUTO';});confirmAction("Screen wake lock enabled. Display will stay active, Sir.");}
+    else{await state.wakeLock.release();confirmAction("Wake lock released.");}
+  }catch(e){confirmAction("Wake lock unavailable in this environment, Sir.");}
+}
+
+function triggerVibrate(){
+  if(navigator.vibrate){navigator.vibrate([100,50,100,50,300,50,100]);$('cb-vib').className='ctrl-btn on';$('cs-vib').textContent='BUZZ';setTimeout(()=>{$('cb-vib').className='ctrl-btn';$('cs-vib').textContent='READY';},1500);confirmAction("Vibration pattern executed, Sir.");}
+  else confirmAction("Vibration not supported on this device.");
+}
+
+function getLocation(){
+  if(!navigator.geolocation){confirmAction("Geolocation unavailable, Sir.");return;}
+  $('cs-loc').textContent='SCANNING';
+  navigator.geolocation.getCurrentPosition(p=>{
+    const lat=p.coords.latitude.toFixed(4),lon=p.coords.longitude.toFixed(4);
+    $('cb-loc').className='ctrl-btn on';$('cs-loc').textContent='FOUND';
+    confirmAction(`Location acquired, Sir. Coordinates: ${lat} latitude, ${lon} longitude. Accuracy: ${Math.round(p.coords.accuracy)} meters.`);
+  },()=>{$('cs-loc').textContent='DENIED';confirmAction("Location access denied, Sir. Please enable permissions.");});
+}
+
+let camStream=null;
+async function openCamera(){
+  try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});$('camVideo').srcObject=camStream;$('camModal').style.display='flex';$('cb-cam').className='ctrl-btn on';$('cs-cam').textContent='LIVE';confirmAction("Camera feed active, Sir.");}
+  catch(e){confirmAction("Camera access denied. Please allow camera permissions.");}
+}
+function closeCamera(){if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}$('camModal').style.display='none';$('cb-cam').className='ctrl-btn';$('cs-cam').textContent='READY';}
+
+async function readClipboard(){
+  try{const t=await navigator.clipboard.readText();$('cb-clip').className='ctrl-btn on';$('cs-clip').textContent='READ';setTimeout(()=>{$('cb-clip').className='ctrl-btn';$('cs-clip').textContent='TAP';},2000);confirmAction(`Clipboard content: ${t.slice(0,120)}${t.length>120?'... and more.':''}`);}
+  catch(e){confirmAction("Clipboard access denied. Please allow clipboard permissions, Sir.");}
+}
+
+function setAlarm(){
+  const t=prompt('JARVIS: Set alarm for what time? (HH:MM)','07:00');
+  if(t){
+    // Try Android intent
+    try{window.location.href=`intent://alarm#Intent;S.hours=${t.split(':')[0]};S.minutes=${t.split(':')[1]};action=android.intent.action.SET_ALARM;end`;}catch(e){}
+    $('cb-alarm').className='ctrl-btn on';$('cs-alarm').textContent=t;
+    confirmAction(`Alarm configured for ${t}, Sir. Your schedule has been updated.`);
+  }
+}
+
+function toggleFullscreen(){
+  if(!document.fullscreenElement){document.documentElement.requestFullscreen();$('ci-fs').textContent='⊡';$('cs-fs').textContent='ON';$('cb-fs').className='ctrl-btn on';confirmAction("Fullscreen mode engaged, Sir.");}
+  else{document.exitFullscreen();$('cs-fs').textContent='OFF';$('cb-fs').className='ctrl-btn';confirmAction("Exiting fullscreen.");}
+}
+
+let lightTheme=false;
+function toggleTheme(){
+  lightTheme=!lightTheme;
+  if(lightTheme){document.body.style.background='#e8f4ff';document.body.style.color='#001a33';$('ci-dark').textContent='☀️';$('cs-dark').textContent='LIGHT';$('cb-dark').className='ctrl-btn on';}
+  else{document.body.style.background='var(--bg)';document.body.style.color='#e0f4ff';$('ci-dark').textContent='🌙';$('cs-dark').textContent='DARK';$('cb-dark').className='ctrl-btn';}
+  confirmAction(`Theme switched to ${lightTheme?'light':'dark'} mode, Sir.`);
+}
+
+// App launcher
+const APP_URLS={
+  whatsapp:'https://web.whatsapp.com',maps:'https://maps.google.com',
+  youtube:'https://youtube.com',spotify:'https://open.spotify.com',
+  gmail:'https://gmail.com',calendar:'https://calendar.google.com',
+  news:'https://news.google.com',photos:'https://photos.google.com',
+  settings:'about:blank'
+};
+function openApp(app){window.open(APP_URLS[app],'_blank');confirmAction(`Opening ${app}, Sir.`);}
+function updateNet(){const online=navigator.onLine;$('cs-net').textContent=online?'ONLINE':'OFFLINE';$('cb-net').className=online?'ctrl-btn on':'ctrl-btn warn';}
+window.addEventListener('online',updateNet);window.addEventListener('offline',updateNet);
+
+// ════════════════════════════════════════
+//  VOICE COMMAND PARSER
+// ════════════════════════════════════════
+function parseCmd(t){
+  const s=t.toLowerCase().trim();
+  if(s.includes('torch')||s.includes('flashlight')){toggleTorch();return true;}
+  if(s.includes('volume up')||s.includes('louder')){if(state.volIdx<4){state.volIdx++;$('ci-vol').textContent=VOL_ICONS[state.volIdx];$('cs-vol').textContent=VOL_LABELS[state.volIdx];}confirmAction(`Volume is now ${VOL_LABELS[state.volIdx]}, Sir.`);return true;}
+  if(s.includes('mute')){state.volIdx=0;$('ci-vol').textContent=VOL_ICONS[0];$('cs-vol').textContent='MUTE';confirmAction("Audio muted, Sir.");return true;}
+  if(s.includes('volume down')||s.includes('quieter')){if(state.volIdx>0)state.volIdx--;$('ci-vol').textContent=VOL_ICONS[state.volIdx];$('cs-vol').textContent=VOL_LABELS[state.volIdx];confirmAction(`Volume at ${VOL_LABELS[state.volIdx]}, Sir.`);return true;}
+  if(s.includes('screen on')||s.includes('keep screen')||s.includes('wake lock')){toggleWakeLock();return true;}
+  if(s.includes('vibrate')||s.includes('buzz')){triggerVibrate();return true;}
+  if(s.includes('where am i')||s.includes('my location')||s.includes('my position')){getLocation();return true;}
+  if(s.includes('camera')||s.includes('open camera')){openCamera();return true;}
+  if(s.includes('clipboard')){readClipboard();return true;}
+  if(s.includes('alarm')){setAlarm();return true;}
+  if(s.includes('weather')||s.includes('temperature')){initWeather();confirmAction("Fetching weather data for your location, Sir.");return true;}
+  if(s.includes('fullscreen')||s.includes('full screen')){toggleFullscreen();return true;}
+  if(s.includes('battery')){confirmAction(`Battery is currently at ${$('cs-bat').textContent}, Sir.`);return true;}
+  if(s.includes('network')||s.includes('wifi')||s.includes('online')){updateNet();confirmAction(`Network status: ${$('cs-net').textContent}. You are ${navigator.onLine?'connected to the internet':'offline'}, Sir.`);return true;}
+  if(s.includes('whatsapp')){openApp('whatsapp');return true;}
+  if(s.includes('youtube')){openApp('youtube');return true;}
+  if(s.includes('spotify')||s.includes('music')){openApp('spotify');return true;}
+  if(s.includes('maps')||s.includes('navigate')){openApp('maps');return true;}
+  if(s.includes('gmail')||s.includes('email')){openApp('gmail');return true;}
+  if(s.includes('calendar')||s.includes('schedule')){openApp('calendar');return true;}
+  if(s.includes('news')){openApp('news');return true;}
+  if(s.includes('friday')){setPersona('friday');return true;}
+  if(s.includes('edith')){setPersona('edith');return true;}
+  if(s.includes('ultron')){setPersona('ultron');return true;}
+  if(s.includes('vision')){setPersona('vision');return true;}
+  if(s.includes('jarvis')&&!s.includes('hey')){setPersona('jarvis');return true;}
+  if(s.includes('good morning')||s.includes('morning briefing')){
+    const h=new Date().getHours();
+    const greet=h<12?'morning':h<18?'afternoon':'evening';
+    confirmAction(`Good ${greet}, Sir. Battery at ${$('cs-bat').textContent}. Network status: ${$('cs-net').textContent}. Arc reactor output at 100%. All twelve systems are fully operational. What shall we do today?`);
+    return true;
+  }
+  return false;
+}
+
+// ════════════════════════════════════════
+//  JARVIS API CALL
+// ════════════════════════════════════════
+async function callJarvis(userInput){
+  if(parseCmd(userInput))return;
+  setStatus('processing');
+  iDisp.textContent=userInput;
+  const msgs=[];
+  state.history.slice(-8).forEach(h=>{msgs.push({role:'user',content:h.user});msgs.push({role:'assistant',content:h.jarvis});});
+  msgs.push({role:'user',content:userInput});
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:PERSONAS[state.persona].system,messages:msgs})});
+    const data=await res.json();
+    const reply=data.content?.[0]?.text||'Apologies, Sir. Neural core error.';
+    state.history.push({user:userInput,jarvis:reply,time:new Date().toLocaleTimeString()});
+    state.count++;$('qCnt').textContent=state.count;
+    typeText(reply);setStatus('speaking');speak(reply,()=>setStatus('dormant'));
+    updateHistory();
+  }catch(e){
+    const err='Apologies, Sir. Connectivity issue detected in the neural link.';
+    typeText(err);setStatus('speaking');speak(err,()=>setStatus('dormant'));
+  }
+}
+
+// ════════════════════════════════════════
+//  HISTORY
+// ════════════════════════════════════════
+function updateHistory(){
+  if(!state.history.length){$('histPanel').style.display='none';return;}
+  $('histPanel').style.display='block';
+  $('histList').innerHTML='';
+  [...state.history].reverse().slice(0,6).forEach(h=>{
+    const d=document.createElement('div');d.className='hist-item fadein';
+    d.innerHTML=`<div class="hist-u">${h.user}</div><div class="hist-j">${h.jarvis}</div><div class="hist-t">${h.time}</div>`;
+    $('histList').appendChild(d);
+  });
+}
+
+// ════════════════════════════════════════
+//  SPEECH RECOGNITION
+// ════════════════════════════════════════
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SR){$('vEngSt').textContent='UNSUPPORTED';$('vEngSt').className='sv2 e';}
+
+function startWake(){
+  if(state.cmdMode||!SR)return;
+  const r=new SR();state.wakeRec=r;r.continuous=true;r.interimResults=true;r.lang='en-US';
+  const wakeWord=state.persona==='friday'?'friday':state.persona==='edith'?'edith':state.persona==='ultron'?'ultron':state.persona==='vision'?'vision':'jarvis';
+  r.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript.toLowerCase();if(t.includes('hey '+wakeWord)||t.includes(wakeWord)){r.stop();setTimeout(startCmd,200);return;}}};
+  r.onerror=()=>{if(!state.cmdMode)setTimeout(startWake,2000);};
+  r.onend=()=>{if(!state.cmdMode)setTimeout(startWake,600);};
+  try{r.start();}catch(e){}
+}
+
+function startCmd(){
+  state.cmdMode=true;setStatus('listening');window.speechSynthesis.cancel();
+  const r=new SR();state.cmdRec=r;r.continuous=false;r.interimResults=true;r.lang='en-US';
+  let final='';
+  r.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)final+=e.results[i][0].transcript;else iDisp.textContent=e.results[i][0].transcript+'...';}};
+  r.onend=()=>{state.cmdMode=false;if(final.trim()){iDisp.textContent=final;callJarvis(final.trim());}else{setStatus('dormant');iDisp.textContent='Awaiting voice command...';}setTimeout(startWake,3000);};
+  r.onerror=()=>{state.cmdMode=false;setStatus('dormant');setTimeout(startWake,2000);};
+  try{r.start();}catch(e){}
+}
+
+function handleTap(){
+  if(state.status==='processing')return;
+  if(state.status==='speaking')window.speechSynthesis.cancel();
+  try{if(state.wakeRec)state.wakeRec.stop();}catch(e){}
+  try{if(state.cmdRec)state.cmdRec.stop();}catch(e){}
+  startCmd();
+}
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+function initApp(){
+  initBattery();initWeather();updateNet();startWake();
+  setTimeout(()=>{
+    const boot=`Good day, Sir. J.A.R.V.I.S. Build 8.0 Ultimate is fully operational. All twelve device systems are online, weather data is loading, and I'm actively listening for your commands. How may I assist you today?`;
+    typeText(boot);setStatus('speaking');speak(boot,()=>setStatus('dormant'));
+  },500);
+}
+</script>
+</body>
+</html>
